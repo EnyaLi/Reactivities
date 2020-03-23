@@ -7,6 +7,8 @@ using Microsoft.Extensions.Hosting;
 using Persistence;
 using Application.Activities;
 using MediatR;
+using FluentValidation.AspNetCore;
+using API.Middleware;
 
 namespace API
 {
@@ -27,7 +29,7 @@ namespace API
                 opt.UseSqlite(Configuration.GetConnectionString("DefaultConnection"));
             });
 
-            services.AddCors(opt => 
+            services.AddCors(opt =>
             {
                 opt.AddPolicy("CorsPolicy", policy =>
                 {
@@ -37,15 +39,21 @@ namespace API
 
             services.AddMediatR(typeof(List.Handler).Assembly);
 
-            services.AddControllers();
+            services.AddControllers()
+                .AddFluentValidation(cfg =>
+                {
+                    cfg.RegisterValidatorsFromAssemblyContaining<Create>();
+                });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
+            app.UseMiddleware<ErrorHandlingMiddleware>();
+            
             if (env.IsDevelopment())
             {
-                app.UseDeveloperExceptionPage();
+                //app.UseDeveloperExceptionPage();
             }
 
             app.UseCors("CorsPolicy");
@@ -59,7 +67,7 @@ namespace API
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
-            });            
+            });
         }
     }
 }
